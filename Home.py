@@ -127,3 +127,4 @@ else:
                         st.markdown(" &nbsp;·&nbsp; ".join(amenities))
 
                     st.link_button("View listing", listing_url, use_container_width=True)
+            
