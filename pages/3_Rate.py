@@ -56,23 +56,39 @@ if submitted:
     try:
         conn = get_connection()
         cur = conn.cursor()
-        # This requires the UNIQUE (apartment_id, roommate_id) constraint in DB
+        
+        # FIX: Manually check for existing rating to avoid ON CONFLICT errors
         cur.execute(
-            """
-            INSERT INTO ratings (apartment_id, roommate_id, score, comment, rated_at)
-            VALUES (%s, %s, %s, %s, NOW())
-            ON CONFLICT (apartment_id, roommate_id)
-            DO UPDATE SET 
-                score = EXCLUDED.score,
-                comment = EXCLUDED.comment,
-                rated_at = NOW();
-            """,
-            (apartment_id, roommate_id, score, comment.strip() or None),
+            "SELECT id FROM ratings WHERE apartment_id = %s AND roommate_id = %s;",
+            (apartment_id, roommate_id)
         )
+        existing_rating = cur.fetchone()
+
+        if existing_rating:
+            # Update the existing record
+            cur.execute(
+                """
+                UPDATE ratings 
+                SET score = %s, comment = %s, rated_at = NOW()
+                WHERE id = %s;
+                """,
+                (score, comment.strip() or None, existing_rating[0])
+            )
+            st.success(f"🔄 Rating updated for {selected_apartment}!")
+        else:
+            # Create a new record
+            cur.execute(
+                """
+                INSERT INTO ratings (apartment_id, roommate_id, score, comment, rated_at)
+                VALUES (%s, %s, %s, %s, NOW());
+                """,
+                (apartment_id, roommate_id, score, comment.strip() or None)
+            )
+            st.success(f"✅ Rating saved for {selected_apartment}!")
+            
         conn.commit()
         cur.close()
         conn.close()
-        st.success(f"✅ Rating saved! {selected_roommate} gave **{selected_apartment}** {score}/5 ⭐")
         st.rerun()
     except Exception as ex:
         st.error(f"Database error: {ex}")
@@ -127,7 +143,7 @@ else:
             with col1:
                 st.markdown(f"**{apt_name}** — rated by **{rm_name}**")
                 if comment:
-                    st.caption(f'\"{comment}\"')
+                    st.caption(f'"{comment}"')
                 
                 # Robust date formatting
                 if rated_at:
