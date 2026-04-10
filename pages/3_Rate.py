@@ -1,11 +1,12 @@
 import streamlit as st
+import pandas as pd
 from db import get_connection
 
 st.set_page_config(page_title="Rate Apartments", page_icon="⭐", layout="wide")
 st.title("⭐ Rate Apartments")
 st.caption("Each roommate can submit one rating per apartment. Submitting again updates your previous rating.")
 
-# ── Load dropdowns from DB (dynamic — no hard-coded options) ──────────────────
+# ── Load dropdowns from DB ──────────────────────────────────────────────────
 conn = get_connection()
 cur = conn.cursor()
 
@@ -41,6 +42,7 @@ with st.form("rate_apartment"):
 
     score = st.slider("Score *", min_value=1, max_value=5, value=3,
                       help="1 = Not interested, 5 = Love it!")
+    
     st.markdown(
         f"{'⭐' * score}{'☆' * (5 - score)}  —  "
         + ["", "Not interested", "Below average", "It's okay", "Pretty good", "Love it!"][score]
@@ -54,15 +56,16 @@ if submitted:
     try:
         conn = get_connection()
         cur = conn.cursor()
-        # Upsert: insert or update if this (apartment, roommate) pair already exists
+        # This requires the UNIQUE (apartment_id, roommate_id) constraint in DB
         cur.execute(
             """
-            INSERT INTO ratings (apartment_id, roommate_id, score, comment)
-            VALUES (%s, %s, %s, %s)
+            INSERT INTO ratings (apartment_id, roommate_id, score, comment, rated_at)
+            VALUES (%s, %s, %s, %s, NOW())
             ON CONFLICT (apartment_id, roommate_id)
-            DO UPDATE SET score = EXCLUDED.score,
-                          comment = EXCLUDED.comment,
-                          rated_at = NOW();
+            DO UPDATE SET 
+                score = EXCLUDED.score,
+                comment = EXCLUDED.comment,
+                rated_at = NOW();
             """,
             (apartment_id, roommate_id, score, comment.strip() or None),
         )
@@ -90,12 +93,7 @@ cur = conn.cursor()
 if filter_apt == "All apartments":
     cur.execute(
         """
-        SELECT
-            a.name AS apartment,
-            rm.name AS roommate,
-            r.score,
-            r.comment,
-            r.rated_at
+        SELECT a.name, rm.name, r.score, r.comment, r.rated_at
         FROM ratings r
         JOIN apartments a ON a.id = r.apartment_id
         JOIN roommates rm ON rm.id = r.roommate_id
@@ -106,12 +104,7 @@ else:
     apt_id = apartment_options[filter_apt]
     cur.execute(
         """
-        SELECT
-            a.name AS apartment,
-            rm.name AS roommate,
-            r.score,
-            r.comment,
-            r.rated_at
+        SELECT a.name, rm.name, r.score, r.comment, r.rated_at
         FROM ratings r
         JOIN apartments a ON a.id = r.apartment_id
         JOIN roommates rm ON rm.id = r.roommate_id
@@ -134,8 +127,12 @@ else:
             with col1:
                 st.markdown(f"**{apt_name}** — rated by **{rm_name}**")
                 if comment:
-                    st.caption(f'"{comment}"')
-                st.caption(f"Rated on {rated_at.strftime('%b %d, %Y')}")
+                    st.caption(f'\"{comment}\"')
+                
+                # Robust date formatting
+                if rated_at:
+                    dt = pd.to_datetime(rated_at)
+                    st.caption(f"Rated on {dt.strftime('%b %d, %Y')}")
             with col2:
                 st.markdown(
                     f"<div style='font-size:24px;text-align:right'>{'⭐' * score}</div>",
