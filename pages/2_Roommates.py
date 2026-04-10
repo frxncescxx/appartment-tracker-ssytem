@@ -1,5 +1,6 @@
 import re
 import streamlit as st
+import pandas as pd
 from db import get_connection
 
 st.set_page_config(page_title="Roommates", page_icon="👥", layout="wide")
@@ -45,94 +46,75 @@ with st.expander("➕ Add new roommate", expanded=True):
                 conn.commit()
                 cur.close()
                 conn.close()
-                st.success(f"✅ '{r_name.strip()}' added!")
+                st.success(f"Added {r_name}!")
                 st.rerun()
             except Exception as ex:
                 if "unique" in str(ex).lower():
-                    st.error("That email address is already registered.")
+                    st.error("A roommate with this email already exists.")
                 else:
                     st.error(f"Database error: {ex}")
 
 st.divider()
 
-# ── Search & list ─────────────────────────────────────────────────────────────
-st.subheader("Current roommates")
-search = st.text_input("🔍 Search by name or email")
+# ── List roommates ────────────────────────────────────────────────────────────
+st.subheader("Current Roommates")
 
 conn = get_connection()
 cur = conn.cursor()
-if search.strip():
-    cur.execute(
-        """
-        SELECT r.id, r.name, r.email, r.created_at,
-               COUNT(rt.id) AS num_ratings
-        FROM roommates r
-        LEFT JOIN ratings rt ON rt.roommate_id = r.id
-        WHERE r.name ILIKE %s OR r.email ILIKE %s
-        GROUP BY r.id ORDER BY r.name;
-        """,
-        (f"%{search.strip()}%", f"%{search.strip()}%"),
-    )
-else:
-    cur.execute(
-        """
-        SELECT r.id, r.name, r.email, r.created_at,
-               COUNT(rt.id) AS num_ratings
-        FROM roommates r
-        LEFT JOIN ratings rt ON rt.roommate_id = r.id
-        GROUP BY r.id ORDER BY r.name;
-        """
-    )
+cur.execute("""
+    SELECT 
+        rm.id, 
+        rm.name, 
+        rm.email, 
+        rm.created_at, 
+        (SELECT COUNT(*) FROM ratings WHERE roommate_id = rm.id) as num_ratings
+    FROM roommates rm
+    ORDER BY rm.name;
+""")
 roommates = cur.fetchall()
 cur.close()
 conn.close()
 
 if not roommates:
-    st.info("No roommates found.")
+    st.info("No roommates added yet.")
 else:
-    for row in roommates:
-        rm_id, rm_name, rm_email, created_at, num_ratings = row
+    for rm_id, rm_name, rm_email, created_at, num_ratings in roommates:
+        # Check if we are currently editing this specific roommate
+        is_editing = st.session_state.get(f"editing_rm_{rm_id}", False)
 
-        with st.container(border=True):
-            hcol, bcol, dcol = st.columns([5, 1, 1])
-            with hcol:
-                st.markdown(f"**{rm_name}** — {rm_email}")
-                st.caption(f"Joined {created_at.strftime('%b %d, %Y')} · {num_ratings} rating(s) submitted")
-            with bcol:
-                if st.button("✏️ Edit", key=f"edit_{rm_id}"):
-                    st.session_state[f"editing_rm_{rm_id}"] = True
-            with dcol:
-                if st.button("🗑️ Delete", key=f"del_{rm_id}"):
-                    st.session_state[f"confirm_del_rm_{rm_id}"] = True
+        if not is_editing:
+            with st.container(border=True):
+                hcol, bcol, dcol = st.columns([5, 1, 1])
+                with hcol:
+                    st.markdown(f"**{rm_name}** — {rm_email}")
+                    
+                    # FIX: Convert created_at using pandas to ensure it's a datetime object
+                    if created_at:
+                        dt_object = pd.to_datetime(created_at)
+                        st.caption(f"Joined {dt_object.strftime('%b %d, %Y')} · {num_ratings} rating(s) submitted")
+                    else:
+                        st.caption(f"Joined date unknown · {num_ratings} rating(s) submitted")
 
-            # Confirm delete
-            if st.session_state.get(f"confirm_del_rm_{rm_id}"):
-                st.warning(
-                    f"Delete **{rm_name}**? Their ratings will also be removed."
-                )
-                cc1, cc2 = st.columns(2)
-                if cc1.button("Yes, delete", key=f"yes_rm_{rm_id}", type="primary"):
-                    conn = get_connection()
-                    cur = conn.cursor()
-                    cur.execute("DELETE FROM roommates WHERE id = %s;", (rm_id,))
-                    conn.commit()
-                    cur.close()
-                    conn.close()
-                    st.session_state.pop(f"confirm_del_rm_{rm_id}", None)
-                    st.success(f"Deleted '{rm_name}'.")
-                    st.rerun()
-                if cc2.button("Cancel", key=f"no_rm_{rm_id}"):
-                    st.session_state.pop(f"confirm_del_rm_{rm_id}", None)
-                    st.rerun()
-
-            # Inline edit form
-            if st.session_state.get(f"editing_rm_{rm_id}"):
-                with st.form(f"edit_rm_{rm_id}"):
-                    ec1, ec2 = st.columns(2)
-                    with ec1:
-                        e_name = st.text_input("Name *", value=rm_name)
-                    with ec2:
-                        e_email = st.text_input("Email *", value=rm_email)
+                with bcol:
+                    if st.button("Edit", key=f"edit_btn_{rm_id}", use_container_width=True):
+                        st.session_state[f"editing_rm_{rm_id}"] = True
+                        st.rerun()
+                with dcol:
+                    if st.button("🗑️", key=f"del_btn_{rm_id}", use_container_width=True):
+                        conn = get_connection()
+                        cur = conn.cursor()
+                        cur.execute("DELETE FROM roommates WHERE id = %s;", (rm_id,))
+                        conn.commit()
+                        cur.close()
+                        conn.close()
+                        st.rerun()
+        else:
+            # Inline Edit Form
+            with st.container(border=True):
+                st.markdown(f"**Editing {rm_name}**")
+                with st.form(f"edit_form_{rm_id}"):
+                    e_name = st.text_input("Name", value=rm_name)
+                    e_email = st.text_input("Email", value=rm_email)
                     save_btn, cancel_btn = st.columns(2)
                     save = save_btn.form_submit_button("💾 Save", use_container_width=True)
                     cancel = cancel_btn.form_submit_button("Cancel", use_container_width=True)
