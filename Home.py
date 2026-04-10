@@ -4,6 +4,7 @@ from db import get_connection, init_db
 
 st.set_page_config(page_title="Apartment Tracker", page_icon="🏠", layout="wide")
 
+# Initialize database tables
 init_db()
 
 st.title("🏠 Apartment Tracker")
@@ -11,6 +12,8 @@ st.caption("Track, rate, and compare apartments with your roommates.")
 
 # ── Summary metrics ──────────────────────────────────────────────────────────
 conn = get_connection()
+# IMPORTANT: Reset the transaction state to ensure we see the latest data
+conn.rollback() 
 cur = conn.cursor()
 
 cur.execute("SELECT COUNT(*) FROM apartments;")
@@ -23,13 +26,13 @@ cur.execute("SELECT COUNT(*) FROM ratings;")
 total_ratings = cur.fetchone()[0]
 
 cur.execute("SELECT ROUND(AVG(score)::numeric, 1) FROM ratings;")
-avg_score = cur.fetchone()[0] or "—"
+avg_score_val = cur.fetchone()[0] or "—"
 
 col1, col2, col3, col4 = st.columns(4)
 col1.metric("Apartments tracked", total_apts)
 col2.metric("Roommates", total_roommates)
 col3.metric("Ratings submitted", total_ratings)
-col4.metric("Avg score (all)", avg_score)
+col4.metric("Avg score (all)", avg_score_val)
 
 st.divider()
 
@@ -90,7 +93,7 @@ else:
             row = rows[i + j]
             (apt_id, name, address, beds, baths, rent,
              parking, pets, laundry, image_url, listing_url,
-             avg_score, num_ratings) = row
+             current_avg, current_count) = row
 
             with col:
                 with st.container(border=True):
@@ -112,8 +115,8 @@ else:
                     mcol2.metric("Beds / Baths", f"{beds} / {baths}")
                     mcol3.metric(
                         "Avg score",
-                        f"{avg_score} ★" if avg_score else "—",
-                        help=f"{num_ratings} rating(s)",
+                        f"{current_avg} ★" if current_avg else "—",
+                        help=f"{current_count} rating(s)",
                     )
 
                     amenities = []
@@ -127,4 +130,3 @@ else:
                         st.markdown(" &nbsp;·&nbsp; ".join(amenities))
 
                     st.link_button("View listing", listing_url, use_container_width=True)
-            
