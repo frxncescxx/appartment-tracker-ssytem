@@ -1,9 +1,10 @@
 import streamlit as st
 import psycopg2
-from db import init_db 
+from db import init_db
 
 st.set_page_config(page_title="Apartment Tracker", page_icon="🏠")
-init_db()                 
+
+init_db()
 
 def get_connection():
     return psycopg2.connect(st.secrets["DB_URL"])
@@ -64,3 +65,7 @@ try:
 
 except Exception as e:
     st.error(f"Database connection error: {e}")
+
+st.markdown("---")
+if st.button("🔄 Refresh data"):
+    st.rerun()
