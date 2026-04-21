@@ -40,9 +40,10 @@ Key Columns: score (1–5 scale) and comment for detailed feedback.
 
     3. Configure your secrets
     Create a file at .streamlit/secrets.toml, this file is gitignored and will never be uploaded to GitHub:
-    DB_URL = 'postgresql://retool:npg_TxcWHyD8Uo0J@ep-lively-frost-ak1mhdhf-pooler.c-3.us-west-2.retooldb.com/retool?sslmode=require' 
-   
+
     4. Run the app
     streamlit run streamlit_app.py
+
+.streamlit/secrets.toml 
 
 # Live URL: (https://appartment-tracker-ssytem-eieh6cznwwlbjhcxb9hdtt.streamlit.app/)
