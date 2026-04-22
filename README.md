@@ -44,6 +44,8 @@ Key Columns: score (1–5 scale) and comment for detailed feedback.
     4. Run the app
     streamlit run streamlit_app.py
 
+    DB_URL = 'postgresql://your_user:your_password@your_host/your_database'
+    
 .streamlit/secrets.toml 
 
 # Live URL: (https://appartment-tracker-ssytem-eieh6cznwwlbjhcxb9hdtt.streamlit.app/)
