@@ -76,7 +76,7 @@ class RatingForm(forms.ModelForm):
             'roommate': forms.Select(attrs={'class': 'form-select'}),
             'score': forms.Select(
                 choices=[(1, '1 — Not interested'), (2, '2 — Below average'),
-                         (3, '3 — It\'s okay'), (4, '4 — Pretty good'), (5, '5 — Love it!')],
+                         (3, "3 — It's okay"), (4, '4 — Pretty good'), (5, '5 — Love it!')],
                 attrs={'class': 'form-select'}
             ),
             'comment': forms.Textarea(attrs={

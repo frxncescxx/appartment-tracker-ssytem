@@ -1,0 +1,98 @@
+{% extends 'tracker/base.html' %}
+{% block title %}Dashboard — Apartment Tracker{% endblock %}
+{% block content %}
+<h1 class="h3 mb-4">Dashboard</h1>
+
+<div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+        <div class="metric-card">
+            <div class="value">{{ total_apts }}</div>
+            <div class="label">Apartments tracked</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="metric-card">
+            <div class="value">{{ total_roommates }}</div>
+            <div class="label">Roommates</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="metric-card">
+            <div class="value">{{ total_ratings }}</div>
+            <div class="label">Ratings submitted</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="metric-card">
+            <div class="value">{% if avg_score %}{{ avg_score }} ★{% else %}—{% endif %}</div>
+            <div class="label">Avg score (all)</div>
+        </div>
+    </div>
+</div>
+
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-body">
+        <form method="get" class="row g-3 align-items-end">
+            <div class="col-md-4">
+                <label class="form-label">Max monthly rent ($)</label>
+                <input type="number" name="rent_max" value="{{ rent_max }}" class="form-control" min="0" step="100">
+            </div>
+            <div class="col-md-4 d-flex gap-4 pt-3">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="parking" id="parking" {% if filter_parking %}checked{% endif %}>
+                    <label class="form-check-label" for="parking">Parking</label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="pets" id="pets" {% if filter_pets %}checked{% endif %}>
+                    <label class="form-check-label" for="pets">Pet-friendly</label>
+                </div>
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-primary w-100">Filter</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="row g-4">
+    {% for apt in apartments %}
+    <div class="col-md-6">
+        <div class="apt-card">
+            {% if apt.image_url %}
+            <img src="{{ apt.image_url }}" alt="{{ apt.name }}">
+            {% else %}
+            <div class="no-image">No image</div>
+            {% endif %}
+            <div class="card-body">
+                <h5 class="fw-bold mb-1">{{ apt.name }}</h5>
+                {% if apt.address %}<p class="text-muted small mb-2">📍 {{ apt.address }}</p>{% endif %}
+                <div class="row g-2 mb-3 text-center">
+                    <div class="col-4 border-end">
+                        <div class="fw-bold">${{ apt.monthly_rent|floatformat:0 }}/mo</div>
+                        <div class="text-muted small">Rent</div>
+                    </div>
+                    <div class="col-4 border-end">
+                        <div class="fw-bold">{{ apt.bedrooms }}bd / {{ apt.bathrooms }}ba</div>
+                        <div class="text-muted small">Size</div>
+                    </div>
+                    <div class="col-4">
+                        <div class="fw-bold">{% if apt.avg_score %}{{ apt.avg_score }} ★{% else %}—{% endif %}</div>
+                        <div class="text-muted small">{{ apt.num_ratings }} rating(s)</div>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    {% for amenity in apt.amenity_list %}
+                    <span class="amenity-tag">{{ amenity }}</span>
+                    {% endfor %}
+                </div>
+                <a href="{{ apt.listing_url }}" target="_blank" class="btn btn-outline-primary btn-sm w-100">View listing →</a>
+            </div>
+        </div>
+    </div>
+    {% empty %}
+    <div class="col-12">
+        <div class="alert alert-info">No apartments match your filters. <a href="{% url 'apartments' %}">Add one →</a></div>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

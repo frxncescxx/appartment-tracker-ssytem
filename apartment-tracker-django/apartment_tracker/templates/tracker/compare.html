@@ -1,0 +1,111 @@
+{% extends 'tracker/base.html' %}
+{% block title %}Compare Apartments{% endblock %}
+{% block content %}
+<h1 class="h3 mb-4">⚖️ Compare Apartments</h1>
+
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-body">
+        <form method="get" class="row g-3 align-items-end">
+            <div class="col-md-5">
+                <label class="form-label">First apartment</label>
+                <select name="left" class="form-select">
+                    <option value="">— Select —</option>
+                    {% for apt in all_apartments %}
+                    <option value="{{ apt.pk }}" {% if left_id == apt.pk|stringformat:"s" %}selected{% endif %}>
+                        {{ apt.name }}{% if apt.address %} — {{ apt.address }}{% endif %}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-5">
+                <label class="form-label">Second apartment</label>
+                <select name="right" class="form-select">
+                    <option value="">— Select —</option>
+                    {% for apt in all_apartments %}
+                    <option value="{{ apt.pk }}" {% if right_id == apt.pk|stringformat:"s" %}selected{% endif %}>
+                        {{ apt.name }}{% if apt.address %} — {{ apt.address }}{% endif %}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-primary w-100">Compare</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% if verdict %}
+<div class="alert {% if verdict.0 == 'tie' %}alert-info{% else %}alert-success{% endif %} mb-4">
+    {% if verdict.0 == 'tie' %}
+        🤝 It's a tie! Both apartments have the same average score.
+    {% else %}
+        🏆 <strong>{{ verdict.1.name }}</strong> leads by {{ verdict.2 }} point(s) based on roommate ratings.
+    {% endif %}
+</div>
+{% endif %}
+
+{% if left_right %}
+<div class="row g-4">
+    {% for apt, ratings in left_right %}
+    <div class="col-md-6">
+        <div class="apt-card">
+            {% if apt.image_url %}
+            <img src="{{ apt.image_url }}" alt="{{ apt.name }}">
+            {% else %}
+            <div class="no-image">No image</div>
+            {% endif %}
+            <div class="card-body">
+                <h5 class="fw-bold">{{ apt.name }}</h5>
+                {% if apt.address %}<p class="text-muted small">📍 {{ apt.address }}</p>{% endif %}
+                <a href="{{ apt.listing_url }}" target="_blank" class="btn btn-outline-primary btn-sm w-100 mb-3">View listing →</a>
+
+                <div class="row g-2 mb-3 text-center">
+                    <div class="col-4 border-end">
+                        <div class="fw-bold">${{ apt.monthly_rent|floatformat:0 }}</div>
+                        <div class="text-muted small">Rent/mo</div>
+                    </div>
+                    <div class="col-4 border-end">
+                        <div class="fw-bold">{{ apt.bedrooms }}</div>
+                        <div class="text-muted small">Beds</div>
+                    </div>
+                    <div class="col-4">
+                        <div class="fw-bold">{{ apt.bathrooms }}</div>
+                        <div class="text-muted small">Baths</div>
+                    </div>
+                </div>
+
+                <p class="mb-1 fw-semibold">Amenities</p>
+                <p class="mb-3">
+                    {% if apt.has_parking %}✅{% else %}❌{% endif %} Parking<br>
+                    {% if apt.is_pet_friendly %}✅{% else %}❌{% endif %} Pet-friendly<br>
+                    {% if apt.has_in_unit_laundry %}✅{% else %}❌{% endif %} In-unit laundry
+                </p>
+
+                <p class="mb-1 fw-semibold">Roommate ratings</p>
+                {% if ratings %}
+                    {% for r in ratings %}
+                    <div class="mb-1">
+                        <strong>{{ r.roommate.name }}</strong>:
+                        <span class="star-rating">{% for i in "12345" %}{% if forloop.counter <= r.score %}★{% else %}☆{% endif %}{% endfor %}</span>
+                        ({{ r.score }}/5)
+                        {% if r.comment %}<span class="text-muted small"> — "{{ r.comment }}"</span>{% endif %}
+                    </div>
+                    {% endfor %}
+                    {% if apt.avg_score %}
+                    <div class="mt-2 p-2 bg-light rounded">
+                        <strong>Average: {{ apt.avg_score }} / 5</strong>
+                    </div>
+                    {% endif %}
+                {% else %}
+                    <p class="text-muted small">No ratings yet.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="alert alert-info">Select two apartments above to compare them side by side.</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,19 @@
+{% extends 'tracker/base.html' %}
+{% block title %}Delete {{ roommate.name }}{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+<div class="col-md-6">
+<div class="card border-0 shadow-sm">
+    <div class="card-body text-center p-5">
+        <h4 class="mb-3">🗑️ Delete "{{ roommate.name }}"?</h4>
+        <p class="text-muted mb-4">This will permanently delete this roommate and all their ratings. This cannot be undone.</p>
+        <form method="post" class="d-flex gap-3 justify-content-center">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-danger">Yes, delete</button>
+            <a href="{% url 'roommates' %}" class="btn btn-outline-secondary">Cancel</a>
+        </form>
+    </div>
+</div>
+</div>
+</div>
+{% endblock %}

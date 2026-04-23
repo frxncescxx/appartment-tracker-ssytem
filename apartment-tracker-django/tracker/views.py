@@ -6,7 +6,6 @@ from .models import Apartment, Roommate, Rating
 from .forms import ApartmentForm, RoommateForm, RatingForm
 
 
-# ── Dashboard ─────────────────────────────────────────────────────────────────
 @login_required
 def dashboard(request):
     total_apts = Apartment.objects.count()
@@ -16,7 +15,6 @@ def dashboard(request):
     avg_result = Rating.objects.aggregate(avg=Avg('score'))
     avg_score = round(avg_result['avg'], 1) if avg_result['avg'] else None
 
-    # Filter logic
     rent_max = request.GET.get('rent_max', 5000)
     filter_parking = request.GET.get('parking') == 'on'
     filter_pets = request.GET.get('pets') == 'on'
@@ -44,7 +42,6 @@ def dashboard(request):
     return render(request, 'tracker/dashboard.html', context)
 
 
-# ── Apartments ────────────────────────────────────────────────────────────────
 @login_required
 def apartments(request):
     search = request.GET.get('search', '')
@@ -93,7 +90,6 @@ def apartment_delete(request, pk):
     return render(request, 'tracker/apartment_confirm_delete.html', {'apt': apt})
 
 
-# ── Roommates ─────────────────────────────────────────────────────────────────
 @login_required
 def roommates(request):
     search = request.GET.get('search', '')
@@ -139,11 +135,12 @@ def roommate_delete(request, pk):
     return render(request, 'tracker/roommate_confirm_delete.html', {'roommate': roommate})
 
 
-# ── Rate ──────────────────────────────────────────────────────────────────────
 @login_required
 def rate(request):
     filter_apt = request.GET.get('filter_apt', '')
-    all_ratings = Rating.objects.select_related('apartment', 'roommate').order_by('apartment__name', 'roommate__name')
+    all_ratings = Rating.objects.select_related('apartment', 'roommate').order_by(
+        'apartment__name', 'roommate__name'
+    )
     if filter_apt:
         all_ratings = all_ratings.filter(apartment_id=filter_apt)
 
@@ -155,7 +152,6 @@ def rate(request):
             roommate = form.cleaned_data['roommate']
             score = form.cleaned_data['score']
             comment = form.cleaned_data['comment']
-            # Upsert — update if exists, create if not
             rating, created = Rating.objects.update_or_create(
                 apartment=apt,
                 roommate=roommate,
@@ -176,16 +172,12 @@ def rate(request):
     return render(request, 'tracker/rate.html', context)
 
 
-# ── Compare ───────────────────────────────────────────────────────────────────
 @login_required
 def compare(request):
     all_apartments = Apartment.objects.all()
-    left = None
-    right = None
-    left_ratings = []
-    right_ratings = []
+    left = right = None
+    left_ratings = right_ratings = []
     verdict = None
-
     left_id = request.GET.get('left')
     right_id = request.GET.get('right')
 
@@ -201,18 +193,16 @@ def compare(request):
         left_ratings = Rating.objects.filter(apartment=left).select_related('roommate')
         right_ratings = Rating.objects.filter(apartment=right).select_related('roommate')
 
-        ls = left.avg_score or 0
-        rs = right.avg_score or 0
+        ls = float(left.avg_score or 0)
+        rs = float(right.avg_score or 0)
         if ls == rs:
-            verdict = ('tie', None)
+            verdict = ('tie', None, 0)
         elif ls > rs:
-            verdict = ('left', left, round(float(ls) - float(rs), 1))
+            verdict = ('left', left, round(ls - rs, 1))
         else:
-            verdict = ('right', right, round(float(rs) - float(ls), 1))
+            verdict = ('right', right, round(rs - ls, 1))
 
-    left_right = []
-    if left and right:
-        left_right = [(left, left_ratings), (right, right_ratings)]
+    left_right = [(left, left_ratings), (right, right_ratings)] if left and right else []
 
     context = {
         'all_apartments': all_apartments,
