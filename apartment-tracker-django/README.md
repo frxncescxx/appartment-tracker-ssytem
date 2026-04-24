@@ -3,7 +3,7 @@
 A production-grade Django web app for roommates to collaboratively track, rate, and compare apartment listings — backed by a PostgreSQL database. Converted from a Streamlit prototype to a full Django application with user authentication.
 
 ## Live App
-🔗 [https://your-username.pythonanywhere.com](https://your-username.pythonanywhere.com)
+🔗 [https://frxncescxx.pythonanywhere.com](https://francesca.pythonanywhere.com)
 
 ## ERD
 ![ERD](erd.png)
