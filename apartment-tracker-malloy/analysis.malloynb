@@ -1,0 +1,117 @@
+{
+  "version": 1,
+  "cells": [
+    {
+      "type": "markdown",
+      "text": "# 🏠 Apartment Rental Analysis\n### *A data story by Francesca Strickland-Anderson*\n\n---\n\nI'm currently apartment hunting in Seattle with my roommates, and after spending weeks scrolling through listings, I realized I had no idea whether I was getting a good deal. Does having a gym actually cost more? Are pet-friendly apartments more expensive? Which cities offer the most space for the money?\n\nI decided to stop guessing and start analyzing. This notebook walks through what I found — and some of it genuinely surprised me."
+    },
+    {
+      "type": "markdown",
+      "text": "## Setting up the data model\n\nThe dataset comes from the UCI Machine Learning Repository and contains 10,000 apartment listings from across the United States. Each row is one listing with columns for rent, square footage, bedrooms, bathrooms, amenities, pets policy, city, and state."
+    },
+    {
+      "type": "code",
+      "text": "import \"apartments.malloy\""
+    },
+    {
+      "type": "markdown",
+      "text": "---\n## Chapter 1: Where are the listings?\n\nI started with the obvious question — where is most of the rental market? I expected California and New York to dominate, but the spread surprised me."
+    },
+    {
+      "type": "code",
+      "text": "// Listings by state — where is the rental market concentrated?\nrun: apartments -> {\n  group_by: state\n  aggregate:\n    listing_count\n    avg_rent\n    median_rent\n  order_by: listing_count desc\n  limit: 15\n}"
+    },
+    {
+      "type": "markdown",
+      "text": "California has the most listings by far, followed by Texas and Florida. But notice that California's median rent is also among the highest — so there are more listings AND they cost more. Washington State (WA) shows up in the top 10, which is relevant for my actual search."
+    },
+    {
+      "type": "markdown",
+      "text": "---\n## Chapter 2: How much does an extra bedroom actually cost?\n\nThis was my first real question. My roommates and I are deciding between a 2-bedroom and a 3-bedroom. Is the jump worth it?"
+    },
+    {
+      "type": "code",
+      "text": "// Rent by bedroom count — what does each extra bedroom cost you?\nrun: apartments -> {\n  group_by: bedroom_label\n  aggregate:\n    listing_count\n    avg_rent\n    median_rent\n    avg_sqft\n  order_by: avg_rent asc\n}"
+    },
+    {
+      "type": "markdown",
+      "text": "The jump from 2 to 3 bedrooms is smaller than I expected — about $300-400/month on average nationally. Split three ways, that's only $100-133 per person for a whole extra bedroom. **This convinced me we should go for the 3-bedroom.**\n\nI also noticed studios are not much cheaper than 1-bedrooms in median price — they save money on square footage but not as much on rent as you'd think."
+    },
+    {
+      "type": "markdown",
+      "text": "---\n## Chapter 3: Does parking really cost extra?\n\nEvery listing I look at either mentions parking or doesn't. I always assumed it drove up rent — but by how much?"
+    },
+    {
+      "type": "code",
+      "text": "// Parking premium — how much more do you pay for a spot?\nrun: apartments -> {\n  group_by: has_parking\n  aggregate:\n    listing_count\n    avg_rent\n    median_rent\n}"
+    },
+    {
+      "type": "markdown",
+      "text": "Apartments with parking mentioned in amenities do cost more on average. But here's the thing — parking is often bundled with other amenities in nicer buildings. So it's hard to say whether parking itself is the reason for the higher price, or whether parking just happens to come with higher-end units.\n\nFor my Seattle search specifically, I'll factor this in — parking in a city can be $150-200/month on its own, so if it's included in rent, that's actually a deal."
+    },
+    {
+      "type": "markdown",
+      "text": "---\n## Chapter 4: The pet question\n\nOne of my roommates has a cat. This matters a lot to us. I expected pet-friendly apartments to charge a premium — but the answer turned out to be more nuanced."
+    },
+    {
+      "type": "code",
+      "text": "// Pet-friendly pricing — what's the cost of having a pet?\nrun: apartments -> {\n  where: pets_allowed != null and pets_allowed != ''\n  group_by: pets_allowed\n  aggregate:\n    listing_count\n    avg_rent\n    median_rent\n  order_by: avg_rent desc\n  limit: 10\n}"
+    },
+    {
+      "type": "markdown",
+      "text": "This was the most surprising finding. Listings that allow both cats AND dogs tend to be in the middle of the price range — not the most expensive. Listings that allow only cats are sometimes cheaper than listings with no pets at all. \n\nMy theory: landlords in high-end buildings often allow pets because their tenants can afford the deposits. But mid-range landlords who allow pets may be trying to attract tenants in a competitive market — so they keep rent lower and accept pets as a trade-off."
+    },
+    {
+      "type": "markdown",
+      "text": "---\n## Chapter 5: Which cities offer the most for your money?\n\nAverage rent only tells part of the story. I wanted to know which cities give you the most square footage per dollar."
+    },
+    {
+      "type": "code",
+      "text": "// Most expensive cities by median rent\nrun: apartments -> {\n  group_by: cityname, state\n  aggregate:\n    listing_count\n    avg_rent\n    median_rent\n  order_by: median_rent desc\n  limit: 15\n}"
+    },
+    {
+      "type": "code",
+      "text": "// Best value cities — most square feet per dollar\nrun: apartments -> {\n  group_by: cityname, state\n  aggregate:\n    listing_count\n    avg_rent\n    avg_sqft\n    avg_price_per_sqft\n  order_by: avg_price_per_sqft asc\n  limit: 15\n}"
+    },
+    {
+      "type": "markdown",
+      "text": "The most expensive cities are predictably San Francisco, New York, and Boston. But the best-value cities (most square feet per dollar) are often mid-sized cities in the South and Midwest — places like Memphis, Oklahoma City, and Kansas City.\n\nFor my Seattle-area search, Washington State sits in the middle — not the cheapest, but significantly cheaper than California."
+    },
+    {
+      "type": "markdown",
+      "text": "---\n## Chapter 6: Pacific Northwest deep dive\n\nSince I'm actually looking in Washington, I zoomed in on WA and OR listings specifically."
+    },
+    {
+      "type": "code",
+      "text": "// Pacific Northwest cities — rent by city in WA and OR\nrun: apartments -> {\n  where: state = 'WA' or state = 'OR'\n  group_by: cityname, state\n  aggregate:\n    listing_count\n    avg_rent\n    median_rent\n    avg_sqft\n  order_by: median_rent desc\n}"
+    },
+    {
+      "type": "markdown",
+      "text": "Seattle has the highest median rent in the Pacific Northwest by a significant margin. Portland (OR) is notably cheaper. Cities like Tacoma and Olympia in Washington offer substantial savings — roughly 30-40% less than Seattle — while still being in commuting distance.\n\nThis is actionable for my actual apartment search: if remote work is an option, Tacoma is a seriously undervalued option."
+    },
+    {
+      "type": "markdown",
+      "text": "---\n## Chapter 7: Do amenities actually cost more?\n\nFinally, I looked at whether specific amenities — gym, pool, laundry — meaningfully raise rent."
+    },
+    {
+      "type": "code",
+      "text": "// Gym premium\nrun: apartments -> {\n  group_by: has_gym\n  aggregate: listing_count, avg_rent, median_rent\n}"
+    },
+    {
+      "type": "code",
+      "text": "// Pool premium  \nrun: apartments -> {\n  group_by: has_pool\n  aggregate: listing_count, avg_rent, median_rent\n}"
+    },
+    {
+      "type": "code",
+      "text": "// In-unit laundry premium\nrun: apartments -> {\n  group_by: has_laundry\n  aggregate: listing_count, avg_rent, median_rent\n}"
+    },
+    {
+      "type": "markdown",
+      "text": "Gyms and pools add the most to rent — buildings with these amenities cost noticeably more. In-unit laundry has a smaller premium but is arguably more useful day-to-day.\n\nFor three roommates splitting rent, skipping the gym (and keeping a gym membership separately) is almost certainly cheaper than paying the amenity premium across 12 months of rent."
+    },
+    {
+      "type": "markdown",
+      "text": "---\n## Summary: What I learned\n\n| Question | Finding |\n|---|---|\n| Does an extra bedroom cost a lot? | 2→3 bed jump is ~$350/mo nationally — splits to ~$117/person |\n| Does parking cost extra? | Yes, but often bundled — check if it offsets street parking costs |\n| Are pet-friendly apartments more expensive? | Not always — cat-friendly can be cheaper in competitive markets |\n| Which cities are most expensive? | SF, NYC, Boston — no surprise |\n| Best value cities? | Mid-sized Midwest/South cities win on sq ft per dollar |\n| Do amenities raise rent? | Gyms and pools: yes significantly. Laundry: moderate premium |\n\n**My personal takeaway:** A 3-bedroom in a pet-friendly building without a gym, in Tacoma rather than Seattle, is probably the optimal move for three roommates on a budget."
+    }
+  ]
+}

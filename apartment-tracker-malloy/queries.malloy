@@ -1,0 +1,132 @@
+// queries.malloy
+// All analysis queries for the apartment rental dataset
+// Run each query individually by clicking the Run button above it
+
+import "apartments.malloy"
+
+// ── Query 1: Listings per state ───────────────────────────────────────────────
+query: listings_by_state is apartments -> {
+  group_by: state
+  aggregate:
+    listing_count
+    avg_rent
+    median_rent
+  order_by: listing_count desc
+  limit: 20
+}
+
+// ── Query 2: Rent by bedroom count ────────────────────────────────────────────
+query: rent_by_bedrooms is apartments -> {
+  group_by: bedroom_label
+  aggregate:
+    listing_count
+    avg_rent
+    median_rent
+    avg_sqft
+  order_by: avg_rent asc
+}
+
+// ── Query 3: Does parking raise rent? ─────────────────────────────────────────
+query: parking_premium is apartments -> {
+  group_by: has_parking
+  aggregate:
+    listing_count
+    avg_rent
+    median_rent
+}
+
+// ── Query 4: Pet-friendly pricing ─────────────────────────────────────────────
+// Fixed: use 'is not null' instead of '!= null'
+query: pet_friendly_pricing is apartments -> {
+  where: pets_allowed is not null and pets_allowed != ''
+  group_by: pets_allowed
+  aggregate:
+    listing_count
+    avg_rent
+    median_rent
+  order_by: avg_rent desc
+  limit: 10
+}
+
+// ── Query 5: Most expensive cities ───────────────────────────────────────────
+query: most_expensive_cities is apartments -> {
+  group_by: cityname, state
+  aggregate:
+    listing_count
+    avg_rent
+    median_rent
+  order_by: median_rent desc
+  limit: 15
+}
+
+// ── Query 6: Best value cities (sq ft per dollar) ─────────────────────────────
+query: best_value_cities is apartments -> {
+  group_by: cityname, state
+  aggregate:
+    listing_count
+    avg_rent
+    avg_sqft
+    avg_price_per_sqft
+  order_by: avg_price_per_sqft asc
+  limit: 15
+}
+
+// ── Query 7: Gym premium ──────────────────────────────────────────────────────
+query: gym_premium is apartments -> {
+  group_by: has_gym
+  aggregate:
+    listing_count
+    avg_rent
+    median_rent
+}
+
+// ── Query 8: Pool premium ─────────────────────────────────────────────────────
+query: pool_premium is apartments -> {
+  group_by: has_pool
+  aggregate:
+    listing_count
+    avg_rent
+    median_rent
+}
+
+// ── Query 9: Laundry premium ──────────────────────────────────────────────────
+query: laundry_premium is apartments -> {
+  group_by: has_laundry
+  aggregate:
+    listing_count
+    avg_rent
+    median_rent
+}
+
+// ── Query 10: Pacific Northwest cities ────────────────────────────────────────
+query: pacific_northwest is apartments -> {
+  where: state = 'WA' or state = 'OR'
+  group_by: cityname, state
+  aggregate:
+    listing_count
+    avg_rent
+    median_rent
+    avg_sqft
+  order_by: median_rent desc
+}
+
+// ── Query 11: Fee vs no-fee listings ─────────────────────────────────────────
+query: fee_comparison is apartments -> {
+  group_by: fee
+  aggregate:
+    listing_count
+    avg_rent
+    median_rent
+  order_by: listing_count desc
+}
+
+// ── Query 12: Top states by rent (WA, CA, NY, TX, FL) ─────────────────────────
+query: rent_by_state_and_bedroom is apartments -> {
+  where: state = 'CA' or state = 'TX' or state = 'NY' or state = 'FL' or state = 'WA'
+  group_by: state, bedroom_label
+  aggregate:
+    listing_count
+    avg_rent
+    median_rent
+  order_by: state, avg_rent asc
+}
