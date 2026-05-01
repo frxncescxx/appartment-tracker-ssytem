@@ -1,36 +1,27 @@
 // apartments.malloy
 // Data model for the UCI Apartment for Rent Classified dataset
-// Dataset: https://archive.ics.uci.edu/dataset/555/apartment+for+rent+classified
-//
-// IMPORTANT: Make sure apartments_for_rent_classified_10K.csv is in the
-// SAME folder as this .malloy file before running.
 
-source: apartments is duckdb.table('apartments_for_rent_classified_10K.csv') extend {
+source: apartments is duckdb.table('/Users/francesca/appartment-tracker-ssytem/apartment-tracker-malloy/apartments.parquet') extend {
 
   // ── Measures ────────────────────────────────────────────────────────────────
-  // (no circular dimension re-declarations — columns are already accessible)
-
   measure: listing_count is count()
-  measure: avg_rent is avg(price::number)
-  measure: avg_sqft is avg(square_feet::number)
-  measure: max_rent is max(price::number)
-  measure: min_rent is min(price::number)
-
-  // median requires the SQL passthrough syntax in newer Malloy
-  measure: median_rent is median!(price::number)
+  measure: avg_rent is avg(price)
+  measure: avg_sqft is avg(square_feet)
+  measure: max_rent is max(price)
+  measure: min_rent is min(price)
 
   // ── Derived dimensions ──────────────────────────────────────────────────────
-  dimension: price_per_sqft is price::number / nullif(square_feet::number, 0)
+  dimension: price_per_sqft is price / nullif(square_feet, 0)
   measure: avg_price_per_sqft is avg(price_per_sqft)
 
   dimension: bedroom_label is concat(bedrooms::string, ' Bedroom(s)')
 
-  // Amenity flags parsed from the free-text amenities column
-  dimension: has_parking is amenities ? ~ r'parking'
-  dimension: has_gym is amenities ? ~ r'[Gg]ym|[Ff]itness'
-  dimension: has_pool is amenities ? ~ r'[Pp]ool'
-  dimension: has_ac is amenities ? ~ r'[Aa][Cc]|[Aa]ir'
-  dimension: has_laundry is amenities ? ~ r'[Ll]aundry|[Ww]asher'
-  dimension: allows_dogs is pets_allowed ? ~ r'[Dd]ogs'
-  dimension: allows_cats is pets_allowed ? ~ r'[Cc]ats'
+  // Amenity boolean flags
+  dimension: has_parking is amenities ? ~ r'Parking'
+  dimension: has_gym is amenities ? ~ r'Gym'
+  dimension: has_pool is amenities ? ~ r'Pool'
+  dimension: has_ac is amenities ? ~ r'AC'
+  dimension: has_laundry is amenities ? ~ r'Laundry|Washer'
+  dimension: allows_dogs is pets_allowed ? ~ r'Dogs'
+  dimension: allows_cats is pets_allowed ? ~ r'Cats'
 }
